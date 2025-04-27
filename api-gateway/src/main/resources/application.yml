@@ -1,0 +1,63 @@
+resilience4j:
+  circuitbreaker:
+    instances:
+      productService:
+        registerHealthIndicator: true
+        failureRateThreshold: 50
+        minimumNumberOfCalls: 5
+        slidingWindowSize: 10
+        waitDurationInOpenState: 5s
+        permittedNumberOfCallsInHalfOpenState: 3
+
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true # Helps with service discovery
+      routes:
+        # Product Service Route
+        - id: product-service
+          uri: lb://PRODUCT-SERVICE
+          predicates:
+            - Path=/api/products/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: productService
+                fallbackUri: forward:/fallback/product
+                statusCodes:
+                  - 500
+                  - 503
+                  - BAD_GATEWAY
+            - TokenRelay  # Forward JWT to downstream service
+
+        # Auth Service Route (No Circuit Breaker Needed)
+        - id: auth-service
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/auth/**
+          filters:
+            - TokenRelay
+
+        # User Service Route
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/users/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: userService
+                fallbackUri: forward:/fallback/user
+                statusCodes:
+                  - 500
+                  - 503
+            - TokenRelay
+
+eureka:
+  client:
+    register-with-eureka: true  # Register API Gateway itself (optional)
+    fetch-registry: true        # Discover other services
+    service-url:
+      defaultZone: http://localhost:8761/eureka
