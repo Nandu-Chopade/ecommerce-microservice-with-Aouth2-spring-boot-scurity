@@ -20,7 +20,13 @@ public class Cart {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CartItem> items = new ArrayList<>();
 
+
     public Cart(Long userId) {
+        this.userId = userId;
+    }
+
+    public void addItem(Long productId, String productName, int quantity, double price) {
+        items.add(new CartItem(productId, productName, quantity, price));
     }
 }
 

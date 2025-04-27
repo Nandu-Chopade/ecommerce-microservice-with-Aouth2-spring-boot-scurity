@@ -55,6 +55,22 @@ spring:
                   - 503
             - TokenRelay
 
+
+        # Cart Service Route
+
+        - id: cart-service
+          uri: lb://CART-SERVICE
+          predicates:
+              - Path=/api/cart/**
+          filters:
+              - name: CircuitBreaker
+                args:
+                  name: cartService
+                  fallbackUri: forward:/fallback/cart
+              - TokenRelay
+              - PreserveHostHeader
+              - DedupeResponseHeader
+
 eureka:
   client:
     register-with-eureka: true  # Register API Gateway itself (optional)
